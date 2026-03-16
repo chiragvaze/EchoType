@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EchoType – Typing Practice</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #111111;
+    --bg2: #1a1a1a;
+    --bg3: #222222;
+    --surface: #2a2a2a;
+    --border: #333333;
+    --text: #e4e4e4;
+    --text-dim: #888888;
+    --text-dimmer: #555555;
+    --accent: #f2c94c;
+    --accent-dim: #c9a53a;
+    --correct: #6fcf97;
+    --wrong: #eb5757;
+    --wrong-bg: rgba(235,87,87,0.12);
+    --cursor: #f2c94c;
+    --font-ui: 'Syne', sans-serif;
+    --font-type: 'JetBrains Mono', monospace;
+    --radius: 8px;
+    --transition: 0.15s ease;
+  }
+  .light-theme {
+    --bg: #f5f5f0;
+    --bg2: #ebebeb;
+    --bg3: #e0e0d8;
+    --surface: #ffffff;
+    --border: #d0d0c8;
+    --text: #222222;
+    --text-dim: #777777;
+    --text-dimmer: #aaaaaa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+    overflow-x: hidden;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    height: 64px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+  .logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+    cursor: pointer;
+    user-select: none;
+  }
+  .logo span { color: var(--text-dim); font-weight: 400; }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .icon-btn {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 8px 10px;
+    font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: color var(--transition), background var(--transition), border-color var(--transition);
+  }
+  .icon-btn:hover { color: var(--accent); background: var(--bg3); border-color: var(--border); }
+  .icon-btn.active { color: var(--accent); }
+  .icon-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* MAIN LAYOUT */
+  main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  /* TOOLBAR */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px;
+  }
+  .toolbar-divider { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+  .pill-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: var(--font-ui);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 6px 14px;
+    border-radius: 8px;
+    transition: all var(--transition);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .pill-btn:hover { color: var(--text); background: var(--bg3); }
+  .pill-btn.active { color: var(--accent); background: var(--bg3); }
+  .pill-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 2.5rem;
+    margin-bottom: 1.5rem;
+    height: 48px;
+    align-items: center;
+  }
+  .stat-item { text-align: center; }
+  .stat-label { font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dimmer); }
+  .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--text-dim); font-family: var(--font-type); line-height: 1; }
+  .stat-value.live { color: var(--accent); }
+  #timer-display { font-size: 2.2rem; font-family: var(--font-type); font-weight: 700; color: var(--accent); text-align: center; min-width: 80px; }
+  #timer-display.danger { color: var(--wrong); animation: pulse 0.5s ease infinite alternate; }
+  @keyframes pulse { from { opacity: 1; } to { opacity: 0.6; } }
+
+  /* TYPING AREA */
+  .typing-container {
+    position: relative;
+    cursor: text;
+  }
+  #words-display {
+    font-family: var(--font-type);
+    font-size: 1.35rem;
+    line-height: 1.8;
+    color: var(--text-dimmer);
+    letter-spacing: 0.02em;
+    user-select: none;
+    max-height: 162px;
+    overflow: hidden;
+    position: relative;
+    padding: 1.5rem 2rem;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: border-color var(--transition);
+  }
+  #words-display:focus-within,
+  #words-display.focused { border-color: var(--accent); }
+  #words-display .word { display: inline-block; margin-right: 0.5em; }
+  #words-display .char { position: relative; }
+  #words-display .char.correct { color: var(--correct); }
+  #words-display .char.wrong { color: var(--wrong); background: var(--wrong-bg); border-radius: 2px; }
+  #words-display .char.extra { color: var(--wrong); font-size: 0.9em; }
+  .cursor-line {
+    position: absolute;
+    left: 0; top: 0;
+    width: 2px;
+    height: 1.4em;
+    background: var(--cursor);
+    border-radius: 2px;
+    transition: left 0.06s, top 0.06s;
+    animation: blink 1s step-end infinite;
+    pointer-events: none;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  #hidden-input {
+    position: absolute;
+    opacity: 0;
+    top: 0; left: 0;
+    width: 1px; height: 1px;
+    pointer-events: none;
+  }
+  .typing-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: rgba(17,17,17,0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    backdrop-filter: blur(2px);
+    cursor: text;
+    transition: opacity 0.2s;
+  }
+  .typing-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  /* CAPSLOCK WARNING */
+  #capslock-warn {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--wrong);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    height: 20px;
+    margin-top: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #capslock-warn.visible { opacity: 1; }
+
+  /* PROGRESS BAR */
+  #progress-bar-wrap { height: 3px; background: var(--bg3); border-radius: 3px; margin-top: 12px; }
+  #progress-bar { height: 100%; background: var(--accent); border-radius: 3px; width: 0%; transition: width 0.1s; }
+
+  /* CUSTOM INPUT */
+  #custom-input-area {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+  #custom-input-area.visible { display: flex; }
+  #custom-textarea {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: var(--font-type);
+    font-size: 0.9rem;
+    padding: 1rem 1.5rem;
+    resize: vertical;
+    min-height: 100px;
+    outline: none;
+    transition: border-color var(--transition);
+  }
+  #custom-textarea:focus { border-color: var(--accent); }
+  .btn-primary {
+    background: var(--accent);
+    color: #111;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 10px 24px;
+    transition: all var(--transition);
+    align-self: flex-end;
+  }
+  .btn-primary:hover { background: var(--accent-dim); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* BOTTOM ACTIONS */
+  .bottom-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 1.5rem;
+  }
+  .action-btn {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-dim);
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 10px 20px;
+    display: flex; align-items: center; gap: 8px;
+    transition: all var(--transition);
+  }
+  .action-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .action-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .restart-hint { font-size: 0.72rem; color: var(--text-dimmer); text-align: center; margin-top: 6px; letter-spacing: 0.04em; }
+
+  /* RESULTS SCREEN */
+  #results-screen {
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+  #results-screen.visible { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .results-header { text-align: center; margin-bottom: 2rem; }
+  .results-title { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dimmer); margin-bottom: 0.5rem; }
+  .results-wpm { font-size: 5rem; font-weight: 800; color: var(--accent); line-height: 1; font-family: var(--font-type); }
+  .results-wpm-label { font-size: 0.85rem; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 4px; }
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+  .result-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+  }
+  .result-card .rc-label { font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dimmer); margin-bottom: 6px; }
+  .result-card .rc-value { font-size: 1.6rem; font-weight: 700; font-family: var(--font-type); color: var(--text); }
+  .result-card .rc-value.acc { color: var(--correct); }
+  .result-card .rc-value.err { color: var(--wrong); }
+  .chart-container { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .chart-title { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dimmer); margin-bottom: 1rem; }
+  .chart-wrap { position: relative; height: 160px; }
+  .results-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .res-btn {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-dim);
+    font-family: var(--font-ui);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 10px 20px;
+    display: flex; align-items: center; gap: 8px;
+    transition: all var(--transition);
+  }
+  .res-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .res-btn.primary { background: var(--accent); color: #111; border-color: var(--accent); }
+  .res-btn.primary:hover { background: var(--accent-dim); }
+  .res-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* KEYBOARD HEATMAP */
+  #heatmap-screen {
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  #heatmap-screen.visible { display: block; }
+  .heatmap-title { text-align: center; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dimmer); margin-bottom: 1.5rem; }
+  .keyboard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin: 0 auto 1.5rem;
+    max-width: 600px;
+  }
+  .kb-row { display: flex; gap: 5px; }
+  .key {
+    min-width: 36px;
+    height: 36px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-type);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    position: relative;
+    transition: background 0.3s, color 0.3s;
+    cursor: default;
+    user-select: none;
+  }
+  .key.wide { min-width: 52px; }
+  .key.wider { min-width: 68px; }
+  .key.widest { min-width: 84px; }
+  .key.space { min-width: 200px; }
+  .heatmap-legend { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 0.72rem; color: var(--text-dimmer); }
+  .legend-bar { width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(to right, var(--bg3), var(--accent)); }
+  .heatmap-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 400px; margin: 0 auto 1.5rem; }
+
+  /* SETTINGS PANEL */
+  #settings-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  #settings-overlay.visible { display: flex; }
+  #settings-panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 460px;
+    max-width: 95vw;
+    padding: 2rem;
+    animation: fadeIn 0.2s ease;
+  }
+  .settings-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .settings-header h2 { font-size: 1rem; font-weight: 700; color: var(--text); }
+  .settings-close { background: none; border: none; cursor: pointer; color: var(--text-dim); padding: 4px; display: flex; }
+  .settings-close:hover { color: var(--accent); }
+  .settings-close svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .settings-section { margin-bottom: 1.5rem; }
+  .settings-section h3 { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dimmer); margin-bottom: 0.75rem; }
+  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row label { font-size: 0.88rem; color: var(--text); }
+  .settings-row select {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    padding: 5px 10px;
+    cursor: pointer;
+    outline: none;
+  }
+  /* TOGGLE */
+  .toggle { position: relative; width: 40px; height: 22px; cursor: pointer; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    transition: background 0.2s;
+  }
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    left: 2px; bottom: 2px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+  .toggle input:checked + .toggle-slider::before { transform: translateX(18px); background: #111; }
+
+  /* FONT SIZE SLIDER */
+  .font-slider { width: 100px; accent-color: var(--accent); cursor: pointer; }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 0.82rem;
+    padding: 10px 20px;
+    z-index: 300;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-dimmer);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    border-top: 1px solid var(--border);
+    margin-top: 3rem;
+  }
+  footer a { color: var(--text-dimmer); text-decoration: none; transition: color var(--transition); }
+  footer a:hover { color: var(--accent); }
+  footer span { margin: 0 0.75rem; }
+
+  /* DAILY CHALLENGE BADGE */
+  .daily-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(242,201,76,0.12);
+    border: 1px solid rgba(242,201,76,0.3);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    header { padding: 0 1rem; }
+    main { padding: 1rem; }
+    #words-display { font-size: 1.1rem; padding: 1rem; }
+    .stats-bar { gap: 1.5rem; }
+    .stat-value { font-size: 1.1rem; }
+    #timer-display { font-size: 1.8rem; }
+    .results-wpm { font-size: 3.5rem; }
+    .keyboard { transform: scale(0.75); transform-origin: center top; margin-bottom: -2rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo" onclick="resetToHome()">Echo<span>Type</span></div>
+  <div class="header-right">
+    <button class="icon-btn" id="heatmap-btn" title="Keyboard Heatmap" onclick="toggleHeatmap()">
+      <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M6 10h1M9 10h1M12 10h1M15 10h1M18 10h1M6 13h1M9 13h1M12 13h1M15 13h1M18 13h1M8 16h8"/></svg>
+    </button>
+    <button class="icon-btn" id="settings-btn" title="Settings" onclick="openSettings()">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <button class="pill-btn active" data-mode="time" onclick="setMode('time',this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Time
+    </button>
+    <button class="pill-btn" data-mode="words" onclick="setMode('words',this)">
+      <svg viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>Words
+    </button>
+    <button class="pill-btn" data-mode="quote" onclick="setMode('quote',this)">
+      <svg viewBox="0 0 24 24"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>Quote
+    </button>
+    <button class="pill-btn" data-mode="custom" onclick="setMode('custom',this)">
+      <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Custom
+    </button>
+    <button class="pill-btn" data-mode="daily" onclick="setMode('daily',this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Daily
+    </button>
+    <div class="toolbar-divider"></div>
+    <!-- Time options -->
+    <div id="time-options">
+      <button class="pill-btn active" data-time="30" onclick="setTimeOption(30,this)">30s</button>
+      <button class="pill-btn" data-time="15" onclick="setTimeOption(15,this)">15s</button>
+      <button class="pill-btn" data-time="60" onclick="setTimeOption(60,this)">60s</button>
+      <button class="pill-btn" data-time="120" onclick="setTimeOption(120,this)">120s</button>
+    </div>
+    <!-- Word options -->
+    <div id="word-options" style="display:none">
+      <button class="pill-btn active" data-words="25" onclick="setWordOption(25,this)">25</button>
+      <button class="pill-btn" data-words="10" onclick="setWordOption(10,this)">10</button>
+      <button class="pill-btn" data-words="50" onclick="setWordOption(50,this)">50</button>
+      <button class="pill-btn" data-words="100" onclick="setWordOption(100,this)">100</button>
+    </div>
+    <div class="toolbar-divider"></div>
+    <button class="pill-btn" id="punct-btn" title="Punctuation" onclick="toggleOpt('punct',this)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="19" r="1" fill="currentColor"/><path d="M12 16V7"/></svg>Punct
+    </button>
+    <button class="pill-btn" id="nums-btn" title="Numbers" onclick="toggleOpt('nums',this)">
+      <svg viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>Nums
+    </button>
+  </div>
+
+  <!-- CUSTOM TEXT INPUT -->
+  <div id="custom-input-area">
+    <textarea id="custom-textarea" placeholder="Paste your custom text here..."></textarea>
+    <button class="btn-primary" onclick="applyCustomText()">Start Typing</button>
+  </div>
+
+  <!-- TYPING AREA -->
+  <div id="typing-section">
+    <div id="daily-badge" class="daily-badge" style="display:none">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Daily Challenge
+    </div>
+
+    <!-- STATS BAR -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-label">WPM</div>
+        <div class="stat-value" id="stat-wpm">0</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Accuracy</div>
+        <div class="stat-value" id="stat-acc">—</div>
+      </div>
+      <div id="timer-display">30</div>
+      <div class="stat-item">
+        <div class="stat-label">Correct</div>
+        <div class="stat-value" id="stat-correct">0</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Errors</div>
+        <div class="stat-value" id="stat-errors">0</div>
+      </div>
+    </div>
+
+    <div class="typing-container" onclick="focusInput()">
+      <div id="words-display">
+        <div class="typing-overlay" id="typing-overlay">Click here or start typing</div>
+      </div>
+      <input type="text" id="hidden-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+
+    <div id="capslock-warn">⚠ Caps Lock is ON</div>
+    <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+
+    <div class="bottom-actions">
+      <button class="action-btn" onclick="restartTest()">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>Restart
+      </button>
+      <button class="action-btn" onclick="newTest()">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>New Test
+      </button>
+    </div>
+    <div class="restart-hint">Tab + Enter to restart · Esc to reset</div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="results-screen">
+    <div class="results-header">
+      <div class="results-title">Test Complete</div>
+      <div class="results-wpm" id="res-wpm">0</div>
+      <div class="results-wpm-label">Words Per Minute</div>
+    </div>
+    <div class="results-grid">
+      <div class="result-card">
+        <div class="rc-label">Accuracy</div>
+        <div class="rc-value acc" id="res-acc">0%</div>
+      </div>
+      <div class="result-card">
+        <div class="rc-label">Characters</div>
+        <div class="rc-value" id="res-chars">0</div>
+      </div>
+      <div class="result-card">
+        <div class="rc-label">Correct</div>
+        <div class="rc-value" id="res-correct">0</div>
+      </div>
+      <div class="result-card">
+        <div class="rc-label">Errors</div>
+        <div class="rc-value err" id="res-errors">0</div>
+      </div>
+      <div class="result-card">
+        <div class="rc-label">Time</div>
+        <div class="rc-value" id="res-time">0s</div>
+      </div>
+      <div class="result-card">
+        <div class="rc-label">Raw WPM</div>
+        <div class="rc-value" id="res-raw">0</div>
+      </div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">WPM Over Time</div>
+      <div class="chart-wrap"><canvas id="results-chart"></canvas></div>
+    </div>
+    <div class="results-actions">
+      <button class="res-btn primary" onclick="restartTest()">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>Retry
+      </button>
+      <button class="res-btn" onclick="newTest()">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>New Test
+      </button>
+      <button class="res-btn" onclick="shareResult()">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share
+      </button>
+    </div>
+  </div>
+
+  <!-- HEATMAP SCREEN -->
+  <div id="heatmap-screen">
+    <div class="heatmap-title">Keyboard Heatmap — Key Usage This Session</div>
+    <div class="heatmap-stats" id="heatmap-stats"></div>
+    <div class="keyboard" id="keyboard-layout"></div>
+    <div class="heatmap-legend">
+      <span>Low</span>
+      <div class="legend-bar"></div>
+      <span>High</span>
+    </div>
+    <div class="bottom-actions" style="margin-top:1.5rem">
+      <button class="action-btn" onclick="toggleHeatmap()">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>Back to Test
+      </button>
+    </div>
+  </div>
+</main>
+
+<!-- SETTINGS PANEL -->
+<div id="settings-overlay" onclick="closeSettingsOnOverlay(event)">
+  <div id="settings-panel">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button class="settings-close" onclick="closeSettings()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="settings-section">
+      <h3>Theme</h3>
+      <div class="settings-row">
+        <label>Color Theme</label>
+        <select id="theme-select" onchange="applyTheme(this.value)">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+          <option value="coffee">Coffee</option>
+          <option value="neon">Neon</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>Typography</h3>
+      <div class="settings-row">
+        <label>Font Size</label>
+        <input type="range" class="font-slider" min="12" max="22" value="21" step="1" id="font-size-range" oninput="applyFontSize(this.value)">
+      </div>
+      <div class="settings-row">
+        <label>Font Family</label>
+        <select id="font-select" onchange="applyFont(this.value)">
+          <option value="JetBrains Mono">JetBrains Mono</option>
+          <option value="Courier New">Courier New</option>
+          <option value="monospace">Monospace</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>Typing</h3>
+      <div class="settings-row">
+        <label>Sound Effects</label>
+        <label class="toggle"><input type="checkbox" id="sound-toggle" onchange="settings.sound=this.checked"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="settings-row">
+        <label>Show Cursor Position</label>
+        <label class="toggle"><input type="checkbox" id="cursor-toggle" checked onchange="settings.showCursor=this.checked"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="settings-row">
+        <label>Smooth Caret</label>
+        <label class="toggle"><input type="checkbox" id="smooth-toggle" checked><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- FOOTER -->
+<footer>
+  <span><a href="#" onclick="openSettings()">Settings</a></span>
+  <span><a href="#" onclick="toggleHeatmap()">Heatmap</a></span>
+  <span>EchoType v1.0</span>
+  <span>Built with ♥ for typists</span>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  WORD POOLS
+// ═══════════════════════════════════════════════════
+const WORDS_COMMON = "the be to of and a in that have it for not on with he as you do at this but his by from they we say her she or an will my one all would there their what so up out if about who get which go me when make can like time no just him know take people into year your good some could them see other than then now look only come its over think also back after use two how our work first well way even new want because any these give day most us great between need large often hand high place world still own life few north south east west move live give keep leave put seem change off take while seem come around turn play put much old under last never where though turn keep whole city put keep again point play hand never put face away keep far much put around come right back old long house week old man woman day year life put number place world family face put hand keep still off little right turn around face away turn hand keep still off little play face away turn again around keep still old man woman day".split(" ").filter((w,i,a)=>a.indexOf(w)===i);
+
+const WORDS_EXTRA = "about above across act active actual add address admit adult affect after again age ago agree ahead aim allow almost along already also always among animal answer any appear apply area argue around arrive art ask attempt attend avoid away back bad base be bear become before begin behind believe belong benefit best better between bill blood body book born both break bring build call came care carry case catch cause certain change charge check child choose claim close come common company complete consider continue control copy cost could country course create cut dark deal death decide deep describe detail develop die different difficult direction discover discuss distance divide do done double down draw dream drive drop due each early earth eat economic effect either else end energy enough enter environment escape even event ever every exact expect experience face fact fail fair fall family far feel few field file fight fill final find finish first fit five focus follow food force form forward free friend from full further future get give glass good got government great grow growth guard guide happen hard have head hear heavy help high himself hold hope house human hundred idea identify impact important improve include increase indicate individual industry influence information instead interest into involve issue keep kind know large late learn leave left less level life light like list little local long look lose loss low main make many mark matter mean meet mind miss most move much must national natural need network never news north note nothing notice number occur offer old open order own page part pass pattern perhaps period pick picture plan play point poor possible power prepare present price problem process product program protect provide public pull push put quite raise reach read real reason receive record reduce refer remain remember represent require rest result return right rise rule run said save say section seem self sense set share should sign significant show simple since situation small social south speak special start state step still stop story structure subject support sure system table take team tell than these think though thought thousand three through time top total touch toward train travel treat tree try turn type under unit until use usually value view wait walk want water whatever while whole why wide will window within woman word work world write wrong year young".split(" ");
+
+const ALL_WORDS = [...new Set([...WORDS_COMMON, ...WORDS_EXTRA])];
+
+const PUNCTUATION = [',', '.', '!', '?', ';', ':'];
+const NUMBERS = ['0','1','2','3','4','5','6','7','8','9'];
+
+const QUOTES = [
+  { text: "The only way to do great work is to love what you do. If you haven't found it yet, keep looking. Don't settle.", author: "Steve Jobs" },
+  { text: "In the middle of difficulty lies opportunity. The measure of intelligence is the ability to change.", author: "Albert Einstein" },
+  { text: "Life is what happens when you're busy making other plans. All you need is love.", author: "John Lennon" },
+  { text: "It does not matter how slowly you go as long as you do not stop.", author: "Confucius" },
+  { text: "Whether you think you can or you think you can't, you're right. Quality means doing it right when no one is looking.", author: "Henry Ford" },
+  { text: "The greatest glory in living lies not in never falling, but in rising every time we fall.", author: "Nelson Mandela" },
+  { text: "In the end, it's not the years in your life that count. It's the life in your years.", author: "Abraham Lincoln" },
+  { text: "Spread love everywhere you go. Let no one ever come to you without leaving happier.", author: "Mother Teresa" },
+  { text: "When you reach the end of your rope, tie a knot in it and hang on.", author: "Franklin D. Roosevelt" },
+  { text: "Always remember that you are absolutely unique. Just like everyone else.", author: "Margaret Mead" },
+];
+
+// Daily quotes (seeded by date)
+const getDailyQuote = () => {
+  const d = new Date();
+  const seed = d.getFullYear() * 10000 + (d.getMonth()+1) * 100 + d.getDate();
+  const idx = seed % QUOTES.length;
+  return QUOTES[idx].text;
+};
+
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+let state = {
+  mode: 'time',
+  timeOption: 30,
+  wordOption: 25,
+  words: [],
+  charMap: [],
+  currentWordIndex: 0,
+  currentCharIndex: 0,
+  typed: '',
+  typedHistory: [],
+  started: false,
+  finished: false,
+  startTime: null,
+  timerInterval: null,
+  wpmInterval: null,
+  timeLeft: 30,
+  wpmHistory: [],
+  correctChars: 0,
+  wrongChars: 0,
+  totalTyped: 0,
+  keyFrequency: {},
+  keyErrors: {},
+  punct: false,
+  nums: false,
+};
+
+let settings = { sound: false, showCursor: true };
+let resultsChart = null;
+
+// AudioContext for key sounds
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playKeySound(correct) {
+  if (!settings.sound) return;
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = correct ? 600 : 200;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+    osc.start(); osc.stop(ctx.currentTime + 0.05);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════
+//  WORD GENERATION
+// ═══════════════════════════════════════════════════
+function generateWords(count = 80) {
+  const pool = [...ALL_WORDS];
+  let result = [];
+  for (let i = 0; i < count; i++) {
+    let word = pool[Math.floor(Math.random() * pool.length)];
+    if (state.nums && Math.random() < 0.15) word = NUMBERS[Math.floor(Math.random() * NUMBERS.length)];
+    if (state.punct && Math.random() < 0.2 && result.length > 0) {
+      result[result.length - 1] += PUNCTUATION[Math.floor(Math.random() * PUNCTUATION.length)];
+    }
+    result.push(word);
+  }
+  return result;
+}
+
+function initTest() {
+  clearIntervals();
+  state.started = false;
+  state.finished = false;
+  state.currentWordIndex = 0;
+  state.currentCharIndex = 0;
+  state.typedHistory = [];
+  state.wpmHistory = [];
+  state.correctChars = 0;
+  state.wrongChars = 0;
+  state.totalTyped = 0;
+  state.keyFrequency = {};
+  state.keyErrors = {};
+  state.timeLeft = state.timeOption;
+
+  if (state.mode === 'time') {
+    state.words = generateWords(120);
+  } else if (state.mode === 'words') {
+    state.words = generateWords(state.wordOption);
+  } else if (state.mode === 'quote') {
+    const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    state.words = q.text.split(' ');
+  } else if (state.mode === 'daily') {
+    state.words = getDailyQuote().split(' ');
+  }
+  // custom mode words set elsewhere
+
+  renderWords();
+  updateStats();
+  updateTimerDisplay();
+
+  document.getElementById('typing-section').style.display = 'block';
+  document.getElementById('results-screen').classList.remove('visible');
+  document.getElementById('results-screen').style.display = 'none';
+
+  const overlay = document.getElementById('typing-overlay');
+  overlay.classList.remove('hidden');
+  overlay.textContent = state.mode === 'daily' ? 'Daily Challenge — click to start' : 'Click here or start typing';
+
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('stat-wpm').classList.remove('live');
+  document.getElementById('capslock-warn').classList.remove('visible');
+
+  setTimeout(() => focusInput(), 100);
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════
+function renderWords() {
+  const display = document.getElementById('words-display');
+  const overlay = document.getElementById('typing-overlay');
+
+  // Remove old words but keep overlay
+  const children = [...display.children];
+  children.forEach(c => { if (!c.classList.contains('typing-overlay') && !c.classList.contains('cursor-line')) c.remove(); });
+
+  state.words.forEach((word, wi) => {
+    const wordEl = document.createElement('span');
+    wordEl.className = 'word';
+    wordEl.dataset.wi = wi;
+    [...word].forEach((ch, ci) => {
+      const charEl = document.createElement('span');
+      charEl.className = 'char';
+      charEl.dataset.ci = ci;
+      charEl.dataset.wi = wi;
+      charEl.textContent = ch;
+      wordEl.appendChild(charEl);
+    });
+    // Space after word
+    const space = document.createElement('span');
+    space.className = 'char space-char';
+    space.dataset.ci = word.length;
+    space.dataset.wi = wi;
+    space.textContent = '\u00a0';
+    wordEl.appendChild(space);
+    display.appendChild(wordEl);
+  });
+
+  // Create cursor
+  let cursor = display.querySelector('.cursor-line');
+  if (!cursor) {
+    cursor = document.createElement('div');
+    cursor.className = 'cursor-line';
+    display.appendChild(cursor);
+  }
+  moveCursor(0, 0);
+}
+
+function moveCursor(wi, ci) {
+  if (!settings.showCursor) return;
+  const display = document.getElementById('words-display');
+  const cursor = display.querySelector('.cursor-line');
+  if (!cursor) return;
+
+  const wordEl = display.querySelector(`.word[data-wi="${wi}"]`);
+  if (!wordEl) return;
+  const charEl = wordEl.querySelector(`.char[data-ci="${ci}"]`);
+  const target = charEl || wordEl.lastElementChild;
+
+  if (target) {
+    const dispRect = display.getBoundingClientRect();
+    const charRect = target.getBoundingClientRect();
+    cursor.style.left = (charRect.left - dispRect.left + display.scrollLeft) + 'px';
+    cursor.style.top = (charRect.top - dispRect.top + display.scrollTop) + 'px';
+    cursor.style.height = charRect.height + 'px';
+  }
+}
+
+function scrollToCurrentWord() {
+  const display = document.getElementById('words-display');
+  const wordEl = display.querySelector(`.word[data-wi="${state.currentWordIndex}"]`);
+  if (!wordEl) return;
+  const dispRect = display.getBoundingClientRect();
+  const wordRect = wordEl.getBoundingClientRect();
+  const relTop = wordRect.top - dispRect.top + display.scrollTop;
+  if (relTop > dispRect.height / 2) {
+    display.scrollTop = relTop - dispRect.height / 3;
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  INPUT HANDLING
+// ═══════════════════════════════════════════════════
+const hiddenInput = document.getElementById('hidden-input');
+
+hiddenInput.addEventListener('keydown', e => {
+  if (state.finished) return;
+
+  // Tab+Enter shortcut
+  if (e.key === 'Tab') { e.preventDefault(); return; }
+  if (e.key === 'Escape') { e.preventDefault(); resetToHome(); return; }
+
+  // Capslock check
+  if (e.getModifierState) {
+    const caps = e.getModifierState('CapsLock');
+    document.getElementById('capslock-warn').classList.toggle('visible', caps);
+  }
+
+  if (!state.started && e.key.length === 1) startTest();
+});
+
+hiddenInput.addEventListener('input', e => {
+  if (state.finished) return;
+  const val = hiddenInput.value;
+  hiddenInput.value = '';
+
+  if (!val) return;
+  const ch = val[val.length - 1];
+
+  if (ch === ' ') {
+    // Advance word
+    advanceWord();
+  } else {
+    typeChar(ch);
+  }
+});
+
+function typeChar(ch) {
+  const wi = state.currentWordIndex;
+  const ci = state.currentCharIndex;
+  const word = state.words[wi];
+  if (!word) return;
+
+  state.totalTyped++;
+  state.keyFrequency[ch] = (state.keyFrequency[ch] || 0) + 1;
+
+  const display = document.getElementById('words-display');
+  const wordEl = display.querySelector(`.word[data-wi="${wi}"]`);
+  if (!wordEl) return;
+
+  let charEl = wordEl.querySelector(`.char[data-ci="${ci}"]`);
+
+  if (ci < word.length) {
+    const correct = ch === word[ci];
+    if (correct) {
+      charEl.classList.add('correct');
+      state.correctChars++;
+    } else {
+      charEl.classList.add('wrong');
+      state.wrongChars++;
+      state.keyErrors[ch] = (state.keyErrors[ch] || 0) + 1;
+    }
+    playKeySound(correct);
+    state.currentCharIndex++;
+  } else {
+    // Extra chars
+    const extra = document.createElement('span');
+    extra.className = 'char extra';
+    extra.textContent = ch;
+    extra.dataset.ci = ci;
+    extra.dataset.wi = wi;
+    wordEl.insertBefore(extra, wordEl.querySelector('.space-char'));
+    state.wrongChars++;
+    state.currentCharIndex++;
+  }
+
+  moveCursor(wi, state.currentCharIndex);
+  updateStats();
+  updateProgress();
+}
+
+function advanceWord() {
+  const wi = state.currentWordIndex;
+  if (wi >= state.words.length - 1) {
+    if (state.mode !== 'time') {
+      finishTest();
+      return;
+    }
+  }
+
+  // Mark remaining chars in word as wrong
+  const display = document.getElementById('words-display');
+  const wordEl = display.querySelector(`.word[data-wi="${wi}"]`);
+  if (wordEl) {
+    const word = state.words[wi];
+    for (let ci = state.currentCharIndex; ci < word.length; ci++) {
+      const charEl = wordEl.querySelector(`.char[data-ci="${ci}"]`);
+      if (charEl && !charEl.classList.contains('correct') && !charEl.classList.contains('wrong')) {
+        charEl.classList.add('wrong');
+        state.wrongChars++;
+      }
+    }
+  }
+
+  state.typedHistory.push({ wi, ci: state.currentCharIndex });
+  state.currentWordIndex++;
+  state.currentCharIndex = 0;
+  hiddenInput.value = '';
+
+  scrollToCurrentWord();
+  moveCursor(state.currentWordIndex, 0);
+  updateStats();
+  updateProgress();
+
+  if (state.mode === 'words' && state.currentWordIndex >= state.words.length) {
+    finishTest();
+  }
+}
+
+// Backspace support via keydown
+hiddenInput.addEventListener('keydown', e => {
+  if (e.key === 'Backspace' && !state.finished) {
+    e.preventDefault();
+    handleBackspace();
+  }
+});
+
+function handleBackspace() {
+  if (state.currentCharIndex > 0) {
+    state.currentCharIndex--;
+    const wi = state.currentWordIndex;
+    const ci = state.currentCharIndex;
+    const display = document.getElementById('words-display');
+    const wordEl = display.querySelector(`.word[data-wi="${wi}"]`);
+    if (wordEl) {
+      const charEl = wordEl.querySelector(`.char[data-ci="${ci}"]`);
+      if (charEl) {
+        if (charEl.classList.contains('correct')) state.correctChars--;
+        if (charEl.classList.contains('wrong')) state.wrongChars--;
+        charEl.classList.remove('correct','wrong');
+        // Remove extra chars
+        if (charEl.classList.contains('extra')) charEl.remove();
+      }
+      state.totalTyped = Math.max(0, state.totalTyped - 1);
+    }
+    moveCursor(state.currentWordIndex, state.currentCharIndex);
+    updateStats();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  TIMER & STATS
+// ═══════════════════════════════════════════════════
+function startTest() {
+  state.started = true;
+  state.startTime = Date.now();
+  document.getElementById('typing-overlay').classList.add('hidden');
+  document.getElementById('words-display').classList.add('focused');
+  document.getElementById('stat-wpm').classList.add('live');
+
+  if (state.mode === 'time') {
+    state.timerInterval = setInterval(tickTimer, 1000);
+  }
+  state.wpmInterval = setInterval(updateLiveWpm, 500);
+}
+
+function tickTimer() {
+  state.timeLeft--;
+  updateTimerDisplay();
+  if (state.timeLeft <= 5) {
+    document.getElementById('timer-display').classList.add('danger');
+  }
+  if (state.timeLeft <= 0) {
+    finishTest();
+  }
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timer-display');
+  if (state.mode === 'time') {
+    el.textContent = state.timeLeft;
+    el.style.display = 'block';
+  } else if (state.mode === 'words' || state.mode === 'quote' || state.mode === 'daily' || state.mode === 'custom') {
+    if (state.started && state.startTime) {
+      const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+      const m = Math.floor(elapsed / 60);
+      const s = elapsed % 60;
+      el.textContent = m > 0 ? `${m}:${s.toString().padStart(2,'0')}` : `${s}s`;
+    } else {
+      el.textContent = state.mode === 'words' ? `${state.wordOption}w` : '—';
+    }
+    el.style.display = 'block';
+  }
+}
+
+function updateLiveWpm() {
+  if (!state.started || state.finished) return;
+  const elapsed = (Date.now() - state.startTime) / 60000;
+  if (elapsed < 0.01) return;
+  const wpm = Math.round((state.correctChars / 5) / elapsed);
+  document.getElementById('stat-wpm').textContent = wpm;
+  state.wpmHistory.push({ t: Math.round(elapsed * 60), wpm });
+  updateTimerDisplay();
+}
+
+function updateStats() {
+  document.getElementById('stat-correct').textContent = state.correctChars;
+  document.getElementById('stat-errors').textContent = state.wrongChars;
+  const total = state.correctChars + state.wrongChars;
+  const acc = total > 0 ? Math.round((state.correctChars / total) * 100) : 0;
+  document.getElementById('stat-acc').textContent = state.started ? `${acc}%` : '—';
+}
+
+function updateProgress() {
+  let pct = 0;
+  if (state.mode === 'words' || state.mode === 'quote' || state.mode === 'daily' || state.mode === 'custom') {
+    pct = (state.currentWordIndex / state.words.length) * 100;
+  } else if (state.mode === 'time') {
+    const elapsed = state.timeOption - state.timeLeft;
+    pct = (elapsed / state.timeOption) * 100;
+  }
+  document.getElementById('progress-bar').style.width = Math.min(100, pct) + '%';
+}
+
+function clearIntervals() {
+  clearInterval(state.timerInterval);
+  clearInterval(state.wpmInterval);
+  state.timerInterval = null;
+  state.wpmInterval = null;
+}
+
+// ═══════════════════════════════════════════════════
+//  FINISH
+// ═══════════════════════════════════════════════════
+function finishTest() {
+  if (state.finished) return;
+  state.finished = true;
+  clearIntervals();
+
+  const elapsed = state.started ? (Date.now() - state.startTime) / 1000 : state.timeOption;
+  const elapsedMin = elapsed / 60;
+  const wpm = Math.round((state.correctChars / 5) / Math.max(elapsedMin, 0.001));
+  const rawWpm = Math.round((state.totalTyped / 5) / Math.max(elapsedMin, 0.001));
+  const total = state.correctChars + state.wrongChars;
+  const acc = total > 0 ? Math.round((state.correctChars / total) * 100) : 100;
+
+  // Populate results
+  document.getElementById('res-wpm').textContent = wpm;
+  document.getElementById('res-acc').textContent = acc + '%';
+  document.getElementById('res-chars').textContent = state.totalTyped;
+  document.getElementById('res-correct').textContent = state.correctChars;
+  document.getElementById('res-errors').textContent = state.wrongChars;
+  document.getElementById('res-time').textContent = Math.round(elapsed) + 's';
+  document.getElementById('res-raw').textContent = rawWpm;
+
+  // Hide typing section, show results
+  document.getElementById('typing-section').style.display = 'none';
+  const rs = document.getElementById('results-screen');
+  rs.style.display = 'block';
+  rs.classList.add('visible');
+
+  // Render chart
+  renderResultsChart();
+  updateHeatmap();
+
+  // Save to history (localStorage)
+  saveToHistory({ wpm, acc, errors: state.wrongChars, chars: state.totalTyped, time: Math.round(elapsed), mode: state.mode });
+}
+
+function renderResultsChart() {
+  if (resultsChart) { resultsChart.destroy(); resultsChart = null; }
+  const ctx = document.getElementById('results-chart').getContext('2d');
+
+  // Build data points
+  let data = state.wpmHistory;
+  if (data.length < 2) {
+    const elapsed = state.started ? (Date.now() - state.startTime) / 1000 : state.timeOption;
+    const wpm = parseInt(document.getElementById('res-wpm').textContent);
+    data = [{ t: 0, wpm: 0 }, { t: Math.round(elapsed), wpm }];
+  }
+
+  resultsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.t + 's'),
+      datasets: [{
+        label: 'WPM',
+        data: data.map(d => d.wpm),
+        borderColor: '#f2c94c',
+        backgroundColor: 'rgba(242,201,76,0.1)',
+        borderWidth: 2,
+        pointBackgroundColor: '#f2c94c',
+        pointRadius: 3,
+        tension: 0.4,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 600, easing: 'easeOutCubic' },
+      plugins: { legend: { display: false }, tooltip: {
+        backgroundColor: '#1a1a1a',
+        titleColor: '#888',
+        bodyColor: '#f2c94c',
+        borderColor: '#333',
+        borderWidth: 1,
+      }},
+      scales: {
+        x: { ticks: { color: '#555', font: { family: "'JetBrains Mono'" } }, grid: { color: '#222' } },
+        y: { ticks: { color: '#555', font: { family: "'JetBrains Mono'" } }, grid: { color: '#222' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  HISTORY
+// ═══════════════════════════════════════════════════
+function saveToHistory(entry) {
+  try {
+    let hist = JSON.parse(localStorage.getItem('echotype_history') || '[]');
+    hist.unshift({ ...entry, date: new Date().toISOString() });
+    if (hist.length > 50) hist = hist.slice(0, 50);
+    localStorage.setItem('echotype_history', JSON.stringify(hist));
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════
+//  MODE CONTROLS
+// ═══════════════════════════════════════════════════
+function setMode(mode, btn) {
+  state.mode = mode;
+  document.querySelectorAll('.pill-btn[data-mode]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  document.getElementById('time-options').style.display = mode === 'time' ? '' : 'none';
+  document.getElementById('word-options').style.display = mode === 'words' ? '' : 'none';
+  document.getElementById('custom-input-area').classList.toggle('visible', mode === 'custom');
+  document.getElementById('daily-badge').style.display = mode === 'daily' ? 'inline-flex' : 'none';
+
+  if (mode !== 'custom') initTest();
+}
+
+function setTimeOption(t, btn) {
+  state.timeOption = t;
+  document.querySelectorAll('#time-options .pill-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  initTest();
+}
+
+function setWordOption(w, btn) {
+  state.wordOption = w;
+  document.querySelectorAll('#word-options .pill-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  initTest();
+}
+
+function toggleOpt(opt, btn) {
+  state[opt] = !state[opt];
+  btn.classList.toggle('active', state[opt]);
+  initTest();
+}
+
+function applyCustomText() {
+  const text = document.getElementById('custom-textarea').value.trim();
+  if (!text) return;
+  state.words = text.split(/\s+/).filter(Boolean);
+  document.getElementById('custom-input-area').classList.remove('visible');
+  initTest();
+}
+
+// ═══════════════════════════════════════════════════
+//  RESTART / NEW / HOME
+// ═══════════════════════════════════════════════════
+function restartTest() { initTest(); }
+function newTest() {
+  if (state.mode === 'time' || state.mode === 'words') {
+    state.words = state.mode === 'time' ? generateWords(120) : generateWords(state.wordOption);
+  }
+  initTest();
+}
+function resetToHome() {
+  clearIntervals();
+  state.finished = false;
+  state.started = false;
+  document.getElementById('results-screen').style.display = 'none';
+  document.getElementById('results-screen').classList.remove('visible');
+  document.getElementById('heatmap-screen').classList.remove('visible');
+  document.getElementById('heatmap-screen').style.display = 'none';
+  document.getElementById('typing-section').style.display = 'block';
+  initTest();
+}
+
+function focusInput() {
+  document.getElementById('hidden-input').focus();
+  document.getElementById('words-display').classList.add('focused');
+}
+
+// ═══════════════════════════════════════════════════
+//  HEATMAP
+// ═══════════════════════════════════════════════════
+const KB_ROWS = [
+  ['`','1','2','3','4','5','6','7','8','9','0','-','='],
+  ['q','w','e','r','t','y','u','i','o','p','[',']','\\'],
+  ['a','s','d','f','g','h','j','k','l',';',"'"],
+  ['z','x','c','v','b','n','m',',','.','/'],
+  [' ']
+];
+const KB_WIDTHS = { '\\': 'wide', 'backspace': 'widest', 'tab': 'wide', 'caps': 'wider', 'enter': 'wider', 'shift': 'widest', ' ': 'space' };
+
+function buildKeyboard() {
+  const kb = document.getElementById('keyboard-layout');
+  kb.innerHTML = '';
+  KB_ROWS.forEach(row => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    row.forEach(key => {
+      const keyEl = document.createElement('div');
+      keyEl.className = 'key' + (KB_WIDTHS[key] ? ' ' + KB_WIDTHS[key] : '');
+      keyEl.dataset.key = key;
+      keyEl.textContent = key === ' ' ? 'space' : key;
+      rowEl.appendChild(keyEl);
+    });
+    kb.appendChild(rowEl);
+  });
+}
+
+function updateHeatmap() {
+  buildKeyboard();
+  const freq = state.keyFrequency;
+  const maxFreq = Math.max(...Object.values(freq), 1);
+
+  document.querySelectorAll('.key').forEach(el => {
+    const k = el.dataset.key;
+    const f = freq[k] || 0;
+    const intensity = f / maxFreq;
+    if (intensity > 0) {
+      const r = Math.round(242 * intensity);
+      const g = Math.round(201 * intensity);
+      const b = Math.round(76 * intensity);
+      el.style.background = `rgb(${r},${g},${b})`;
+      el.style.color = intensity > 0.5 ? '#111' : '#e4e4e4';
+      el.style.borderColor = `rgba(242,201,76,${intensity * 0.8})`;
+    }
+    const errs = state.keyErrors[k] || 0;
+    if (errs > 0) {
+      const errSpan = document.createElement('span');
+      errSpan.style.cssText = 'position:absolute;top:1px;right:2px;font-size:8px;color:var(--wrong)';
+      errSpan.textContent = errs;
+      el.appendChild(errSpan);
+    }
+  });
+
+  // Heatmap stats
+  const topKeys = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const topErrors = Object.entries(state.keyErrors).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const statsEl = document.getElementById('heatmap-stats');
+  statsEl.innerHTML = `
+    <div class="result-card"><div class="rc-label">Top Key</div><div class="rc-value">${topKeys[0]?topKeys[0][0]:'—'}</div></div>
+    <div class="result-card"><div class="rc-label">Total Keys</div><div class="rc-value">${Object.values(freq).reduce((a,b)=>a+b,0)}</div></div>
+    <div class="result-card"><div class="rc-label">Error Key</div><div class="rc-value err">${topErrors[0]?topErrors[0][0]:'—'}</div></div>
+  `;
+}
+
+function toggleHeatmap() {
+  const hm = document.getElementById('heatmap-screen');
+  const typing = document.getElementById('typing-section');
+  const results = document.getElementById('results-screen');
+
+  const isVisible = hm.classList.contains('visible');
+  if (isVisible) {
+    hm.classList.remove('visible');
+    hm.style.display = 'none';
+    if (state.finished) {
+      results.style.display = 'block';
+      results.classList.add('visible');
+    } else {
+      typing.style.display = 'block';
+    }
+  } else {
+    typing.style.display = 'none';
+    results.style.display = 'none';
+    results.classList.remove('visible');
+    buildKeyboard();
+    updateHeatmap();
+    hm.style.display = 'block';
+    hm.classList.add('visible');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════════════════
+function openSettings() { document.getElementById('settings-overlay').classList.add('visible'); }
+function closeSettings() { document.getElementById('settings-overlay').classList.remove('visible'); }
+function closeSettingsOnOverlay(e) { if (e.target === document.getElementById('settings-overlay')) closeSettings(); }
+
+function applyTheme(theme) {
+  document.body.classList.remove('light-theme');
+  const root = document.documentElement.style;
+  if (theme === 'light') {
+    document.body.classList.add('light-theme');
+  } else if (theme === 'coffee') {
+    root.setProperty('--bg', '#1e1a16');
+    root.setProperty('--bg2', '#26211b');
+    root.setProperty('--accent', '#d4a45a');
+    root.setProperty('--cursor', '#d4a45a');
+  } else if (theme === 'neon') {
+    root.setProperty('--bg', '#0a0a0f');
+    root.setProperty('--bg2', '#0f0f1a');
+    root.setProperty('--accent', '#00ffaa');
+    root.setProperty('--cursor', '#00ffaa');
+    root.setProperty('--correct', '#00ffaa');
+  } else {
+    root.setProperty('--bg', '#111111');
+    root.setProperty('--bg2', '#1a1a1a');
+    root.setProperty('--accent', '#f2c94c');
+    root.setProperty('--cursor', '#f2c94c');
+    root.setProperty('--correct', '#6fcf97');
+  }
+}
+
+function applyFontSize(size) {
+  document.getElementById('words-display').style.fontSize = size + 'px';
+}
+
+function applyFont(font) {
+  document.getElementById('words-display').style.fontFamily = `'${font}', monospace`;
+}
+
+// ═══════════════════════════════════════════════════
+//  SHARE
+// ═══════════════════════════════════════════════════
+function shareResult() {
+  const wpm = document.getElementById('res-wpm').textContent;
+  const acc = document.getElementById('res-acc').textContent;
+  const text = `🎯 EchoType Result\nWPM: ${wpm} | Accuracy: ${acc}\nTry it yourself!`;
+  if (navigator.share) {
+    navigator.share({ title: 'EchoType Result', text }).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(text).then(() => showToast('Result copied to clipboard!'));
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════
+let tabHeld = false;
+document.addEventListener('keydown', e => {
+  if (e.key === 'Tab') { tabHeld = true; e.preventDefault(); }
+  if (e.key === 'Enter' && tabHeld) { e.preventDefault(); restartTest(); }
+  if (e.key === 'Escape') { e.preventDefault(); resetToHome(); }
+});
+document.addEventListener('keyup', e => { if (e.key === 'Tab') tabHeld = false; });
+
+// Focus input on any key press
+document.addEventListener('keypress', e => {
+  if (document.activeElement !== hiddenInput && !state.finished) {
+    focusInput();
+  }
+});
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+buildKeyboard();
+initTest();
+</script>
+</body>
+</html>
