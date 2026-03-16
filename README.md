@@ -11,14 +11,14 @@ EchoType is a lightweight browser-based typing practice app.
 
 ## Run locally
 
-1. Open `echotype.html` in your browser.
+1. Open `index.html` in your browser.
 2. Start typing in the test area.
 
 No build step or installation is required.
 
 ## Deploy on Vercel
 
-This project is configured for Vercel using [vercel.json](vercel.json), which maps `/` to [echotype.html](echotype.html).
+This project is configured for Vercel using [vercel.json](vercel.json), which maps routes to [index.html](index.html).
 
 ### Option 1: Deploy from GitHub (recommended)
 
